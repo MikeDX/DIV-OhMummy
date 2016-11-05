@@ -31,6 +31,8 @@ guardians = 0;
 lives = 0;
 score = 0;
 dead = true;
+speed = 3;
+
 string keytext = "<<<";
 string mummytext = ">>>>> +";
 
@@ -133,6 +135,8 @@ begin
 
     lives = 5;
     guardians = 0;
+    score = 0;
+
     signal(type guardian, s_kill);
     signal(type player, s_kill);
     signal(type block, s_kill);
@@ -257,6 +261,7 @@ end
                 if(graph == 302)
                     mummy = true;
                     mummytext = "MUMMY +";
+                    score+=100;
                 end
                 if(graph == 304)
                     ckey = true;
@@ -277,6 +282,8 @@ end
                     // trasure hole
                     map_put(file,playmap,9,x,y+8);
 //                    graph = 0;
+                    score+=10;
+
                 end
 
 loop
@@ -301,12 +308,13 @@ ix = 0;
 ox=0;
 oy=0;
 cid=0;
-
+xspeed=0;
 BEGIN
 ox=x;
 oy=y;
 
 graph = 100;
+xspeed = speed;
 
 //map_put(file,father.graph,6,x,y);
 
@@ -320,6 +328,8 @@ started = true;
 //y=y+16;
 
 loop
+xspeed--;
+if(xspeed==0)
     if(key(_up) && map_get_pixel(file,playmap,x,y-16)!=20)
         y=y-16;
 
@@ -368,13 +378,24 @@ loop
             cscroll = false;
         else
             dead = true;
+            ix = 0;
             while(dead)
-                graph = 101;
-                frame(400);
-                graph = 100;
-                frame(400);
+                ix++;
+                if(ix==5)
+                    if(graph == 100)
+                        graph = 101;
+                    else
+                        graph = 100;
+                    end
+
+                    ix=0;
+                end
+                frame;
             end
+            graph = 100;
         end
+    end
+    xspeed = speed;
     end
 
     frame;
@@ -428,11 +449,15 @@ valid = false;
 dir = 0;
 olddir = 0;
 ix = 0;
+xspeed = 0;
+
 BEGIN
 
 graph = 200;
-
+xspeed = speed;
 while(!completed)
+xspeed--;
+if(xspeed==0)
 
 hm = map_get_pixel(file,playmap,x,y);
 if(hm==54)
@@ -506,8 +531,11 @@ end
 //return;
 //end
 
+xspeed = speed;
+end
 
 frame;
+
 end
 guardians++;
 
