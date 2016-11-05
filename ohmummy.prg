@@ -13,6 +13,8 @@ s_music_r;
 s_move;
 playmap;
 playfield;
+ohfont;
+
 started = false;
 contents[]=0,0,0,0,0,0, // 6 nothings
             5,5,5,5,5,5,5,5,5,5, // 10 treasures
@@ -20,6 +22,19 @@ contents[]=0,0,0,0,0,0, // 6 nothings
             3, // 1 scroll
             4, // 1 key
             1; // 1 awoken guardian
+
+mummy = false;
+ckey = false;
+cscroll = false;
+completed = false;
+guardians = 0;
+lives = 0;
+score = 0;
+dead = true;
+string keytext = "<<<";
+string mummytext = ">>>>> +";
+
+
 BEGIN
 
 //Write your code here, make something amazing!
@@ -28,7 +43,14 @@ s_music = load_wav("music.ogg",0);
 s_music_r = load_wav("music.ogg",1);
 s_move = load_wav("move.ogg",0);
 load_fpg("ohmummy.fpg");
+ohfont = load_fnt("oh.fnt");
+write(ohfont,312,48,1,"  1983 - GEM SOFTWARE");
+
 //put_screen(file,2);
+loop
+graph=0;
+put_screen(file,2);
+
 //x = sound(s_music,256,256);
 playmap=new_map(640,480,320,240,11);
 playfield=new_map(640,480,320,240,0);
@@ -36,12 +58,11 @@ playfield=new_map(640,480,320,240,0);
 while(is_playing_sound(x))
 frame;
 end
-
+clear_screen();
 // main loop
 x=320;
 y=240;
 graph = 2;
-loop
 
     demo();
 
@@ -67,6 +88,8 @@ BEGIN
     guardian(72,88);
     guardian(72,88);
 //end
+    delete_text(all_text);
+    write(ohfont,312,48,1,"/ 1983 - GEM SOFTWARE");
 
     while(!key(_space))
 
@@ -107,6 +130,34 @@ begin
     x=320;
     y=240;
     z=50;
+
+    lives = 5;
+    guardians = 0;
+    signal(type guardian, s_kill);
+    signal(type player, s_kill);
+    signal(type block, s_kill);
+
+    delete_text(all_text);
+    //write(ohfont,296,48,1,"SCORE:00200 MEN:4 MUMMY + KEY");
+    write_int(ohfont,240,48,2,&score);
+    write_int(ohfont,336,48,2,&lives);
+    write(ohfont,64,48,0,"SCORE:");
+    write(ohfont,256,48,0,"MEN:");
+    write(ohfont,352,48,0,&mummytext);
+    write(ohfont,480,48,0,&keytext);
+
+    // new level
+    while(lives>0)
+    // kill old stuff
+    cscroll = false;
+    ckey = false;
+    mummy = false;
+    mummytext = ">>>>> +";
+    keytext = "<<<";
+
+    completed = false;
+    // increase guardians in chamber
+    guardians ++;
     // setup display
 //    put_screen(file,4);
     unload_map(playfield);
@@ -117,7 +168,9 @@ begin
     // setup hardness map
     map_put(file,playmap,3,320,240);
     //put_screen(file,playmap);
+    while(lives>0 && !completed)
     started = false;
+    dead = false;
     player(264,72);
 
     blocks();
@@ -126,19 +179,40 @@ begin
         frame;
     end
 
-    guardian(72,88);
-    guardian(552,88);
-    guardian(552,408);
-    guardian(72,408);
+//    guardian(72,88);
+//    guardian(552,88);
+    for(x=0;x<guardians;x++)
+
+        guardian(552,408);
+    end
+    guardians = 0;
+
+    x=320;
+//    guardian(72,408);
 
 
-    while(!key(_enter))
+    while(!key(_enter) && !completed && lives>0)
+        if(dead)
+            signal(type guardian, s_freeze);
+//            signal(type player, s_freeze);
+            lives--;
+            frame(4800);
+            dead = false;
+            signal(type guardian, s_wakeup);
+//            signal(type player, s_wakeup);
+        end
         frame;
     end
+    frame(200);
 
     signal(type player, s_kill);
-    signal(type guardian, s_kill);
+    frame;
+    end
+//    signal(type guardian, s_kill);
     signal(type block, s_kill);
+
+    end
+    signal(type guardian, s_kill);
 
 
 end
@@ -154,6 +228,11 @@ begin
 z=25;
 
 graph = 300;
+// don't bother to check if we don't contain treasure
+if(tgraph==300)
+checking = false;
+end
+
 /*
 map_put_pixel(file,playfield,x-48,y+10,25);
 map_put_pixel(file,playfield,x+48,y+10,25);
@@ -175,6 +254,18 @@ frame;
 
 end
 
+                if(graph == 302)
+                    mummy = true;
+                    mummytext = "MUMMY +";
+                end
+                if(graph == 304)
+                    ckey = true;
+                    keytext = "KEY";
+                end
+
+                if(graph == 303)
+                    cscroll = true;
+                end
 
 //                graph = tgraph;
 //                checking = false;
@@ -209,6 +300,7 @@ olddir = 0;
 ix = 0;
 ox=0;
 oy=0;
+cid=0;
 
 BEGIN
 ox=x;
@@ -236,15 +328,30 @@ loop
 
         else if(key(_left) && map_get_pixel(file,playmap,x-16,y)!=20)
         x=x-16;
-
-            else if(key(_right) && map_get_pixel(file,playmap,x+16,y)!=20)
-        x=x+16;
+             else if(key(_right) && map_get_pixel(file,playmap,x+16,y)!=20)
+             //552 392
+             if(x== 552 && y==392)
+                if(mummy == true && ckey == true)
+                    x=x+16;
+                    completed = true;
+                    frame;
+                end
+             else
+                x=x+16;
+             end
             end
         end
     end
     end
 
-    frame;
+    if(x1!=x || y1!=y)
+        if(!get_id(type guardian))
+            sound(s_move,256,256);
+        end
+    end
+    x1=x;
+    y1=y;
+
 
     if(map_get_pixel(file,playmap,x,y) == 54)
         if(fget_dist(ox,oy,x,y)>64)
@@ -253,6 +360,25 @@ loop
         ox=x;
         oy=y;
     end
+
+    cid = collision(type guardian);
+    if(cid)
+        signal(cid,s_kill);
+        if(cscroll)
+            cscroll = false;
+        else
+            dead = true;
+            while(dead)
+                graph = 101;
+                frame(400);
+                graph = 100;
+                frame(400);
+            end
+        end
+    end
+
+    frame;
+
 
 end
 
@@ -306,7 +432,7 @@ BEGIN
 
 graph = 200;
 
-loop
+while(!completed)
 
 hm = map_get_pixel(file,playmap,x,y);
 if(hm==54)
@@ -381,7 +507,8 @@ end
 //end
 
 
-frame(300);
+frame;
 end
+guardians++;
 
 end
