@@ -11,7 +11,15 @@ s_music;
 s_music_r;
 
 s_move;
-gid = 0;
+playmap;
+playfield;
+started = false;
+contents[]=0,0,0,0,0,0, // 6 nothings
+            5,5,5,5,5,5,5,5,5,5, // 10 treasures
+            2, // 1 mummy
+            3, // 1 scroll
+            4, // 1 key
+            1; // 1 awoken guardian
 BEGIN
 
 //Write your code here, make something amazing!
@@ -20,29 +28,269 @@ s_music = load_wav("music.ogg",0);
 s_music_r = load_wav("music.ogg",1);
 s_move = load_wav("move.ogg",0);
 load_fpg("ohmummy.fpg");
-put_screen(file,2);
-x = sound(s_music,256,256);
+//put_screen(file,2);
+//x = sound(s_music,256,256);
+playmap=new_map(640,480,320,240,11);
+playfield=new_map(640,480,320,240,0);
+
 while(is_playing_sound(x))
 frame;
 end
-write_int(0,0,0,0,&gid);
 
-guardian(72,88);
-guardian(552,88);
-//for(x=0;x<10;x++)
-guardian(72,88);
-guardian(72,88);
+// main loop
+x=320;
+y=240;
+graph = 2;
+loop
+
+    demo();
+
+    game();
+
+end
+
+
+END
+
+function demo()
+BEGIN
+    x=320;
+    y=240;
+    graph = 2;
+    // setup hardness map
+    map_put(file,playmap,5,320,240);
+   // put_screen(file,playmap);
+
+    guardian(72,88);
+    guardian(552,88);
+    //for(x=0;x<10;x++)
+    guardian(72,88);
+    guardian(72,88);
 //end
 
-LOOP
+    while(!key(_space))
 
+        FRAME;
+
+    END
+
+    signal(type guardian,s_kill);
+
+END
+
+function blocks()
+private r,r2;
+begin
+
+for(x=0;x<1000;x++)
+r=rand(0,19);
+r2=rand(0,19);
+y=contents[r];
+contents[r]=contents[r2];
+contents[r2]=y;
+end
+
+r=0;
+
+for (x=0;x<5;x++)
+for(y=0;y<4;y++)
+block(120+x*96,128+y*80,300+contents[r]);
+r++;
+end
+end
+
+end
+
+
+function game()
+begin
+    x=320;
+    y=240;
+    z=50;
+    // setup display
+//    put_screen(file,4);
+    unload_map(playfield);
+    playfield=new_map(640,480,320,240,0);
+    map_put(file,playfield,4,320,240);
+
+    graph = playfield;
+    // setup hardness map
+    map_put(file,playmap,3,320,240);
+    //put_screen(file,playmap);
+    started = false;
+    player(264,72);
+
+    blocks();
+
+    while(!started)
+        frame;
+    end
+
+    guardian(72,88);
+    guardian(552,88);
+    guardian(552,408);
+    guardian(72,408);
+
+
+    while(!key(_enter))
+        frame;
+    end
+
+    signal(type player, s_kill);
+    signal(type guardian, s_kill);
+    signal(type block, s_kill);
+
+
+end
+
+process block(x,y,tgraph)
+
+private
+checking=true;
+
+
+begin
+// put blocks behind player
+z=25;
+
+graph = 300;
+/*
+map_put_pixel(file,playfield,x-48,y+10,25);
+map_put_pixel(file,playfield,x+48,y+10,25);
+map_put_pixel(file,playfield,x,y-40,25);
+map_put_pixel(file,playfield,x,y+40,25);
+*/
+while(checking)
+if(map_get_pixel(file,playfield,x-48,y+10)!=0)
+    if(map_get_pixel(file,playfield,x+48,y+10)!=0)
+        if(map_get_pixel(file,playfield,x,y-40)!=0)
+            if(map_get_pixel(file,playfield,x,y+40)!=0)
+                graph = tgraph;
+                checking = false;
+            end
+        end
+    end
+end
+frame;
+
+end
+
+
+//                graph = tgraph;
+//                checking = false;
+                if(graph == 301)
+                    // spawn guardian
+                end
+
+                if(graph == 305)
+                    // trasure hole
+                    map_put(file,playmap,9,x,y+8);
+//                    graph = 0;
+                end
+
+loop
+frame;
+end
+
+end
+
+
+
+
+process player(x,y)
+
+private
+x1=0;
+y1=0;
+hm = 0;
+valid = false;
+dir = 0;
+olddir = 0;
+ix = 0;
+ox=0;
+oy=0;
+
+BEGIN
+ox=x;
+oy=y;
+
+graph = 100;
+
+//map_put(file,father.graph,6,x,y);
+
+while(!key(_down))
 FRAME;
+END
+started = true;
+
+//map_put(file,father.graph,8,x,y);
+
+//y=y+16;
+
+loop
+    if(key(_up) && map_get_pixel(file,playmap,x,y-16)!=20)
+        y=y-16;
+
+    else if(key(_down) && map_get_pixel(file,playmap,x,y+16)!=20)
+        y=y+16;
+
+        else if(key(_left) && map_get_pixel(file,playmap,x-16,y)!=20)
+        x=x-16;
+
+            else if(key(_right) && map_get_pixel(file,playmap,x+16,y)!=20)
+        x=x+16;
+            end
+        end
+    end
+    end
+
+    frame;
+
+    if(map_get_pixel(file,playmap,x,y) == 54)
+        if(fget_dist(ox,oy,x,y)>64)
+            drawdots(x,y,ox,oy);
+        end
+        ox=x;
+        oy=y;
+    end
+
+end
 
 END
 
+function drawdots(sx,sy,ex,ey);
+
+begin
+
+if(sx>ex)
+    x=sx;
+    sx=ex;
+    ex=x;
+end
+
+if(sy>ey)
+    x=sy;
+    sy=ey;
+    ey=x;
+end
 
 
-END
+while(sx<ex || sy<ey)
+    map_put(file,playfield,150,sx,sy);
+    if(sx<ex)
+        sx+=16;
+    end
+    if(sy<ey)
+        sy+=16;
+    end
+
+end
+// last one
+map_put(file,playfield,150,sx,sy);
+
+
+end
+
 
 process guardian(x,y)
 
@@ -60,7 +308,7 @@ graph = 200;
 
 loop
 
-hm = map_get_pixel(file,5,x,y);
+hm = map_get_pixel(file,playmap,x,y);
 if(hm==54)
 // we can change direction
 valid = false;
@@ -80,7 +328,7 @@ while(valid == false)
 
     switch(dir)
     case 1: // LEFT
-        if(map_get_pixel(file,5,x-16,y)!=20)
+        if(map_get_pixel(file,playmap,x-16,y)!=20)
             x1=-1;
             y1=0;
             valid = true;
@@ -88,7 +336,7 @@ while(valid == false)
 
     end
     case 2: // RIGHT
-        if(map_get_pixel(file,5,x+16,y)!=20)
+        if(map_get_pixel(file,playmap,x+16,y)!=20)
             x1=1;
             y1=0;
             valid = true;
@@ -96,7 +344,7 @@ while(valid == false)
 
     end
     case 3: // DOWN
-        if(map_get_pixel(file,5,x,y+16)!=20)
+        if(map_get_pixel(file,playmap,x,y+16)!=20)
             x1=0;
             y1=1;
             valid = true;
@@ -104,7 +352,7 @@ while(valid == false)
 
     end
     case 4: // UP
-        if(map_get_pixel(file,5,x,y-16)!=20)
+        if(map_get_pixel(file,playmap,x,y-16)!=20)
             x1=0;
             y1=-1;
             valid = true;
@@ -126,16 +374,14 @@ y=y+y1*16;
 //size = 100;
 if(smallbro==0)
     sound(s_move,256,256);
-    gid = id;
-//    size = 200;
 end
 
-if(collision(type guardian))
-return;
-end
+//if(collision(type guardian))
+//return;
+//end
 
 
-frame;
+frame(300);
 end
 
 end
