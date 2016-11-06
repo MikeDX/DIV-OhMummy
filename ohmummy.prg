@@ -53,13 +53,14 @@ loop
 graph=0;
 put_screen(file,2);
 
-//x = sound(s_music,256,256);
+x = sound(s_music,256,256);
 playmap=new_map(640,480,320,240,11);
 playfield=new_map(640,480,320,240,0);
 
-while(is_playing_sound(x))
+while(is_playing_sound(x) && !key(_space))
 frame;
 end
+stop_sound(x);
 clear_screen();
 // main loop
 x=320;
@@ -128,6 +129,7 @@ end
 
 
 function game()
+private i;
 begin
     x=320;
     y=240;
@@ -153,6 +155,7 @@ begin
     // new level
     while(lives>0)
     // kill old stuff
+    signal(type spawn_guardian, s_kill);
     cscroll = false;
     ckey = false;
     mummy = false;
@@ -198,11 +201,15 @@ begin
     while(!key(_enter) && !completed && lives>0)
         if(dead)
             signal(type guardian, s_freeze);
-//            signal(type player, s_freeze);
+            signal(type spawn_guardian, s_freeze);
+
+//   signal(type player, s_freeze);
             lives--;
             frame(4800);
             dead = false;
             signal(type guardian, s_wakeup);
+            signal(type spawn_guardian, s_wakeup);
+
 //            signal(type player, s_wakeup);
         end
         frame;
@@ -211,12 +218,23 @@ begin
 
     signal(type player, s_kill);
     frame;
+    if(lives>0)
+        // new level
+        for(i=0;i<480;i+=16)
+            map_block_copy(file,playfield,0,i,11,0,i,640,16);
+            frame;
+        end
+
+    else
+        // game over
+    end
     end
 //    signal(type guardian, s_kill);
     signal(type block, s_kill);
 
     end
     signal(type guardian, s_kill);
+    signal(type spawn_guardian, s_kill);
 
 
 end
@@ -231,7 +249,7 @@ begin
 // put blocks behind player
 z=25;
 
-graph = 300;
+graph = 0;//300;
 // don't bother to check if we don't contain treasure
 if(tgraph==300)
 checking = false;
@@ -244,19 +262,25 @@ map_put_pixel(file,playfield,x,y-40,25);
 map_put_pixel(file,playfield,x,y+40,25);
 */
 while(checking)
-if(map_get_pixel(file,playfield,x-48,y+10)!=0)
-    if(map_get_pixel(file,playfield,x+48,y+10)!=0)
-        if(map_get_pixel(file,playfield,x,y-40)!=0)
-            if(map_get_pixel(file,playfield,x,y+40)!=0)
-                graph = tgraph;
+if(map_get_pixel(file,playfield,x-48,y+10)==11)
+    if(map_get_pixel(file,playfield,x+48,y+10)==11)
+        if(map_get_pixel(file,playfield,x,y-40)==11)
+            if(map_get_pixel(file,playfield,x,y+40)==11)
                 checking = false;
             end
         end
     end
 end
 frame;
-
 end
+                graph = tgraph;
+
+                if(graph == 301)
+                    // spawn guardian
+                    map_put(file,playfield,300,x,y);
+                    spawn_guardian(x,y-8);
+                    return;
+                end
 
                 if(graph == 302)
                     mummy = true;
@@ -274,9 +298,6 @@ end
 
 //                graph = tgraph;
 //                checking = false;
-                if(graph == 301)
-                    // spawn guardian
-                end
 
                 if(graph == 305)
                     // trasure hole
@@ -371,6 +392,8 @@ if(xspeed==0)
         oy=y;
     end
 
+    xspeed = speed;
+end
     cid = collision(type guardian);
     if(cid)
         signal(cid,s_kill);
@@ -395,10 +418,8 @@ if(xspeed==0)
             graph = 100;
         end
     end
-    xspeed = speed;
-    end
 
-    frame;
+frame;
 
 
 end
@@ -457,10 +478,10 @@ graph = 200;
 xspeed = speed;
 while(!completed)
 xspeed--;
-if(xspeed==0)
+if(xspeed==0 || dir==0)
 
 hm = map_get_pixel(file,playmap,x,y);
-if(hm==54)
+if(hm==54 || dir==0)
 // we can change direction
 valid = false;
 ix = 0;
@@ -540,3 +561,60 @@ end
 guardians++;
 
 end
+
+process spawn_guardian(x,y)
+PRIVATE
+steps = 1;
+dir=1;
+c=0;
+d=0;
+BEGIN
+
+graph = 201;
+map_put(file,playfield,10,x,y);
+
+while(steps<5)
+    switch(dir)
+
+    case 0:
+        y-=16;
+    end
+    case 1:
+        x+=16;
+    end
+    case 2:
+        y+=16;
+    end
+    case 3:
+        x-=16;
+    end
+
+    end
+
+    c++;
+    if(c==steps)
+        c=0;
+
+        dir++;
+        if(dir==4)
+            dir=0;
+        end
+        d++;
+        if(d==2)
+            steps++;
+            d=0;
+        end
+
+    end
+    if(steps<5)
+        map_put(file,playfield,10,x,y);
+    else
+        graph = 200;
+    end
+    frame(speed*200);
+
+end
+
+    guardian(x,y);
+
+END
