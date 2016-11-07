@@ -11,8 +11,8 @@ s_music;
 s_music_r;
 
 s_move;
-playmap;
-playfield;
+playmap=0;
+playfield=0;
 ohfont;
 
 started = false;
@@ -39,40 +39,50 @@ string mummytext = ">>>>> +";
 
 BEGIN
 
-//Write your code here, make something amazing!
-set_mode(640480);
-s_music = load_wav("music.ogg",0);
-s_music_r = load_wav("music.ogg",1);
-s_move = load_wav("move.ogg",0);
-load_fpg("ohmummy.fpg");
-ohfont = load_fnt("oh.fnt");
-write(ohfont,312,48,1,"  1983 - GEM SOFTWARE");
+    //Write your code here, make something amazing!
+    set_mode(640480);
+    s_music = load_wav("music.ogg",0);
+    s_music_r = load_wav("music.ogg",1);
+    s_move = load_wav("move.ogg",0);
+    load_fpg("ohmummy.fpg");
+    ohfont = load_fnt("oh.fnt");
+    write(ohfont,312,48,1,"  1983 - GEM SOFTWARE");
 
-//put_screen(file,2);
-loop
-graph=0;
-put_screen(file,2);
+    // main loop
+    loop
+        graph=0;
+        // put title screen
+        put_screen(file,2);
 
-x = sound(s_music,256,256);
-playmap=new_map(640,480,320,240,11);
-playfield=new_map(640,480,320,240,0);
+        // play music
+        x = sound(s_music,256,256);
+        // create "hardness" map
+        if(playmap!=0)
+            unload_map(playmap);
+        end
+        playmap=new_map(640,480,320,240,11);
+        // create playfield map
+        if(playfield!=0)
+            unload_map(playfield);
+        end
+        playfield=new_map(640,480,320,240,0);
 
-while(is_playing_sound(x) && !key(_space))
-frame;
-end
-stop_sound(x);
-clear_screen();
-// main loop
-x=320;
-y=240;
-graph = 2;
+        // wait until sound stops playing
+        while(is_playing_sound(x) && !key(_space))
+            frame;
+        end
 
-    demo();
+        stop_sound(x);
+        clear_screen();
+        x=320;
+        y=240;
+        graph = 2;
 
-    game();
+        demo();
 
-end
+        game();
 
+    end
 
 END
 
@@ -95,9 +105,7 @@ BEGIN
     write(ohfont,312,48,1,"/ 1983 - GEM SOFTWARE");
 
     while(!key(_space))
-
         FRAME;
-
     END
 
     signal(type guardian,s_kill);
@@ -108,22 +116,22 @@ function blocks()
 private r,r2;
 begin
 
-for(x=0;x<1000;x++)
-r=rand(0,19);
-r2=rand(0,19);
-y=contents[r];
-contents[r]=contents[r2];
-contents[r2]=y;
-end
+    for(x=0;x<1000;x++)
+        r=rand(0,19);
+        r2=rand(0,19);
+        y=contents[r];
+        contents[r]=contents[r2];
+        contents[r2]=y;
+    end
 
-r=0;
+    r=0;
 
-for (x=0;x<5;x++)
-for(y=0;y<4;y++)
-block(120+x*96,128+y*80,300+contents[r]);
-r++;
-end
-end
+    for (x=0;x<5;x++)
+        for(y=0;y<4;y++)
+            block(120+x*96,128+y*80,300+contents[r]);
+            r++;
+        end
+    end
 
 end
 
@@ -136,7 +144,7 @@ begin
     z=50;
 
     lives = 5;
-    guardians = 0;
+    guardians = 20;
     score = 0;
 
     signal(type guardian, s_kill);
@@ -247,13 +255,13 @@ checking=true;
 
 begin
 // put blocks behind player
-z=25;
+    z=25;
 
-graph = 0;//300;
-// don't bother to check if we don't contain treasure
-if(tgraph==300)
-checking = false;
-end
+    graph = 0;//300;
+    // don't bother to check if we don't contain treasure
+    if(tgraph==300)
+        checking = false;
+    end
 
 /*
 map_put_pixel(file,playfield,x-48,y+10,25);
@@ -261,55 +269,53 @@ map_put_pixel(file,playfield,x+48,y+10,25);
 map_put_pixel(file,playfield,x,y-40,25);
 map_put_pixel(file,playfield,x,y+40,25);
 */
-while(checking)
-if(map_get_pixel(file,playfield,x-48,y+10)==11)
-    if(map_get_pixel(file,playfield,x+48,y+10)==11)
-        if(map_get_pixel(file,playfield,x,y-40)==11)
-            if(map_get_pixel(file,playfield,x,y+40)==11)
-                checking = false;
+    while(checking)
+        if(map_get_pixel(file,playfield,x-48,y+10)==11)
+            if(map_get_pixel(file,playfield,x+48,y+10)==11)
+                if(map_get_pixel(file,playfield,x,y-40)==11)
+                    if(map_get_pixel(file,playfield,x,y+40)==11)
+                        checking = false;
+                    end
+                end
             end
         end
+        frame;
     end
-end
-frame;
-end
-                graph = tgraph;
 
-                if(graph == 301)
-                    // spawn guardian
-                    map_put(file,playfield,300,x,y);
-                    spawn_guardian(x,y-8);
-                    return;
-                end
+    graph = tgraph;
 
-                if(graph == 302)
-                    mummy = true;
-                    mummytext = "MUMMY +";
-                    score+=100;
-                end
-                if(graph == 304)
-                    ckey = true;
-                    keytext = "KEY";
-                end
+    if(graph == 301)
+        // spawn guardian
+        graph = 300;
+//        map_put(file,playfield,300,x,y);
+        spawn_guardian(x,y-8);
+        return;
+    end
 
-                if(graph == 303)
-                    cscroll = true;
-                end
+    if(graph == 302)
+        mummy = true;
+        mummytext = "MUMMY +";
+        score+=100;
+    end
 
-//                graph = tgraph;
-//                checking = false;
+    if(graph == 304)
+        ckey = true;
+        keytext = "KEY";
+    end
 
-                if(graph == 305)
-                    // trasure hole
-                    map_put(file,playmap,9,x,y+8);
-//                    graph = 0;
-                    score+=10;
+    if(graph == 303)
+        cscroll = true;
+    end
 
-                end
+    if(graph == 305)
+        map_put(file,playmap,9,x,y+8);
+        score+=10;
 
-loop
-frame;
-end
+    end
+
+    if(graph!=300)
+        map_put(file,playfield,graph,x,y);
+    end
 
 end
 
@@ -330,99 +336,105 @@ ox=0;
 oy=0;
 cid=0;
 xspeed=0;
+
 BEGIN
-ox=x;
-oy=y;
+    ox=x;
+    oy=y;
 
-graph = 100;
-xspeed = speed;
+    graph = 100;
+    xspeed = speed;
 
-//map_put(file,father.graph,6,x,y);
 
-while(!key(_down))
-FRAME;
-END
-started = true;
+    while(!key(_down))
+        FRAME;
+    END
+
+    started = true;
 
 //map_put(file,father.graph,8,x,y);
 
 //y=y+16;
 
-loop
-xspeed--;
-if(xspeed==0)
-    if(key(_up) && map_get_pixel(file,playmap,x,y-16)!=20)
-        y=y-16;
+    loop
+        xspeed--;
+        if(xspeed==0)
+            xspeed = speed;
 
-    else if(key(_down) && map_get_pixel(file,playmap,x,y+16)!=20)
-        y=y+16;
+            if(key(_up) && map_get_pixel(file,playmap,x,y-16)!=20)
+                y=y-16;
 
-        else if(key(_left) && map_get_pixel(file,playmap,x-16,y)!=20)
-        x=x-16;
-             else if(key(_right) && map_get_pixel(file,playmap,x+16,y)!=20)
-             //552 392
-             if(x== 552 && y==392)
-                if(mummy == true && ckey == true)
-                    x=x+16;
-                    completed = true;
+            else
+                if(key(_down) && map_get_pixel(file,playmap,x,y+16)!=20)
+                    y=y+16;
+                else
+                    if(key(_left) && map_get_pixel(file,playmap,x-16,y)!=20)
+                        x=x-16;
+                    else
+                        if(key(_right) && map_get_pixel(file,playmap,x+16,y)!=20)
+                            //552 392 = exit
+                            if(x== 552 && y==392)
+                                if(mummy == true && ckey == true)
+                                    x=x+16;
+                                    completed = true;
+                                    frame;
+                                end
+                            else
+                                x=x+16;
+                            end
+                        end
+                    end
+                end
+            end
+
+            if(x1!=x || y1!=y)
+                if(!get_id(type guardian))
+                    sound(s_move,256,256);
+                end
+            end
+
+            x1=x;
+            y1=y;
+
+            if(map_get_pixel(file,playmap,x,y) == 54)
+                if(fget_dist(ox,oy,x,y)>64)
+                    drawdots(x,y,ox,oy);
+                end
+                ox=x;
+                oy=y;
+            end
+
+            xspeed = speed;
+        end
+
+        cid = collision(type guardian);
+
+        if(cid)
+            signal(cid,s_kill);
+            if(cscroll)
+                cscroll = false;
+            else
+                dead = true;
+                ix = 0;
+                while(dead)
+                    ix++;
+                    if(ix==5)
+                        if(graph == 100)
+                            graph = 101;
+                        else
+                            graph = 100;
+                        end
+
+                        ix=0;
+                    end
                     frame;
                 end
-             else
-                x=x+16;
-             end
+                graph = 100;
             end
         end
+
+        frame;
+
     end
-    end
-
-    if(x1!=x || y1!=y)
-        if(!get_id(type guardian))
-            sound(s_move,256,256);
-        end
-    end
-    x1=x;
-    y1=y;
-
-
-    if(map_get_pixel(file,playmap,x,y) == 54)
-        if(fget_dist(ox,oy,x,y)>64)
-            drawdots(x,y,ox,oy);
-        end
-        ox=x;
-        oy=y;
-    end
-
-    xspeed = speed;
-end
-    cid = collision(type guardian);
-    if(cid)
-        signal(cid,s_kill);
-        if(cscroll)
-            cscroll = false;
-        else
-            dead = true;
-            ix = 0;
-            while(dead)
-                ix++;
-                if(ix==5)
-                    if(graph == 100)
-                        graph = 101;
-                    else
-                        graph = 100;
-                    end
-
-                    ix=0;
-                end
-                frame;
-            end
-            graph = 100;
-        end
-    end
-
-frame;
-
-
-end
 
 END
 
@@ -430,31 +442,31 @@ function drawdots(sx,sy,ex,ey);
 
 begin
 
-if(sx>ex)
-    x=sx;
-    sx=ex;
-    ex=x;
-end
+    if(sx>ex)
+        x=sx;
+        sx=ex;
+        ex=x;
+    end
 
-if(sy>ey)
-    x=sy;
-    sy=ey;
-    ey=x;
-end
+    if(sy>ey)
+        x=sy;
+        sy=ey;
+        ey=x;
+    end
 
 
-while(sx<ex || sy<ey)
+    while(sx<ex || sy<ey)
+        map_put(file,playfield,150,sx,sy);
+        if(sx<ex)
+            sx+=16;
+        end
+        if(sy<ey)
+            sy+=16;
+        end
+
+    end
+    // last one
     map_put(file,playfield,150,sx,sy);
-    if(sx<ex)
-        sx+=16;
-    end
-    if(sy<ey)
-        sy+=16;
-    end
-
-end
-// last one
-map_put(file,playfield,150,sx,sy);
 
 
 end
@@ -474,93 +486,99 @@ xspeed = 0;
 
 BEGIN
 
-graph = 200;
-xspeed = speed;
-while(!completed)
-xspeed--;
-if(xspeed==0 || dir==0)
+    graph = 200;
+    xspeed = speed;
 
-hm = map_get_pixel(file,playmap,x,y);
-if(hm==54 || dir==0)
-// we can change direction
-valid = false;
-ix = 0;
-while(valid == false)
-    ix++;
-    dir = rand(1,4);
-    // check for reverse direction
-    if(ix<10)
-        if((dir == 1 && olddir == 2) || (dir == 2 && olddir == 1))
-            dir = rand(3,4);
-        end
-        if((dir == 3 && olddir == 4) || (dir == 4 && olddir == 3))
-            dir = rand(1,2);
-        end
-    end
+    while(!completed)
+        xspeed--;
+        if(xspeed==0 || dir==0)
 
-    switch(dir)
-    case 1: // LEFT
-        if(map_get_pixel(file,playmap,x-16,y)!=20)
-            x1=-1;
-            y1=0;
-            valid = true;
-        end
+            hm = map_get_pixel(file,playmap,x,y);
 
-    end
-    case 2: // RIGHT
-        if(map_get_pixel(file,playmap,x+16,y)!=20)
-            x1=1;
-            y1=0;
-            valid = true;
-        end
+            if(hm==54 || dir==0)
+                // we can change direction
+                valid = false;
+                ix = 0;
 
-    end
-    case 3: // DOWN
-        if(map_get_pixel(file,playmap,x,y+16)!=20)
-            x1=0;
-            y1=1;
-            valid = true;
-        end
+                while(valid == false)
+                    ix++;
+                    dir = rand(1,4);
+                    // check for reverse direction
+                    if(ix<10)
+                        if((dir == 1 && olddir == 2) || (dir == 2 && olddir == 1))
+                            dir = rand(3,4);
+                        end
+                        if((dir == 3 && olddir == 4) || (dir == 4 && olddir == 3))
+                            dir = rand(1,2);
+                        end
+                    end
 
-    end
-    case 4: // UP
-        if(map_get_pixel(file,playmap,x,y-16)!=20)
-            x1=0;
-            y1=-1;
-            valid = true;
-        end
+                    switch(dir)
 
-    end
-    end    // end switch
+                        case 1: // LEFT
+                            if(map_get_pixel(file,playmap,x-16,y)!=20)
+                                x1=-1;
+                                y1=0;
+                                valid = true;
+                            end
+                        end
 
-end // end while
-olddir = dir;
-end // end if
+                        case 2: // RIGHT
+                            if(map_get_pixel(file,playmap,x+16,y)!=20)
+                                x1=1;
+                                y1=0;
+                                valid = true;
+                            end
+                        end
+
+                        case 3: // DOWN
+                            if(map_get_pixel(file,playmap,x,y+16)!=20)
+                                x1=0;
+                                y1=1;
+                                valid = true;
+                            end
+                        end
+
+                        case 4: // UP
+                            if(map_get_pixel(file,playmap,x,y-16)!=20)
+                                x1=0;
+                                y1=-1;
+                                valid = true;
+                             end
+                        end
+                    end    // end switch
+
+                end // end while
+
+                olddir = dir;
+            end // end if
 
 //for (ix = 0;ix<16;ix++)
 
-x=x+x1*16;
-y=y+y1*16;
+            x=x+x1*16;
+            y=y+y1*16;
 //frame(10);
 //end
 //size = 100;
-if(smallbro==0)
-    sound(s_move,256,256);
-end
+            if(smallbro==0)
+                sound(s_move,256,256);
+            end
 
 //if(collision(type guardian))
 //return;
 //end
 
-xspeed = speed;
+            xspeed = speed;
+        end
+
+        frame;
+
+    end
+    // additional guardian
+    guardians++;
+
 end
 
-frame;
-
-end
-guardians++;
-
-end
 
 process spawn_guardian(x,y)
 PRIVATE
@@ -570,50 +588,57 @@ c=0;
 d=0;
 BEGIN
 
-graph = 201;
-map_put(file,playfield,10,x,y);
+    graph = 201;
+    map_put(file,playfield,10,x,y);
 
-while(steps<5)
-    switch(dir)
+    while(steps<5)
+        switch(dir)
 
-    case 0:
-        y-=16;
-    end
-    case 1:
-        x+=16;
-    end
-    case 2:
-        y+=16;
-    end
-    case 3:
-        x-=16;
-    end
+            case 0:
+                y-=16;
+            end
 
-    end
+            case 1:
+                x+=16;
+            end
 
-    c++;
-    if(c==steps)
-        c=0;
+            case 2:
+                y+=16;
+            end
 
-        dir++;
-        if(dir==4)
-            dir=0;
-        end
-        d++;
-        if(d==2)
-            steps++;
-            d=0;
+            case 3:
+                x-=16;
+            end
+
         end
 
-    end
-    if(steps<5)
-        map_put(file,playfield,10,x,y);
-    else
-        graph = 200;
-    end
-    frame(speed*200);
+        c++;
 
-end
+        if(c==steps)
+            c=0;
+
+            dir++;
+
+            if(dir==4)
+                dir=0;
+            end
+
+            d++;
+
+            if(d==2)
+                steps++;
+                d=0;
+            end
+        end
+
+        if(steps<5)
+            map_put(file,playfield,10,x,y);
+        else
+            graph = 200;
+        end
+
+        frame(speed*200);
+    end
 
     guardian(x,y);
 
